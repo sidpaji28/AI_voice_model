@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Voice Detector</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    #main-content {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 48px;
+      box-shadow: 
+        0 32px 64px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+    }
+
+    .container:hover {
+      transform: translateY(-8px);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    h2 {
+      color: #ffffff;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.1rem;
+      margin-bottom: 40px;
+      font-weight: 400;
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .upload-section {
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    .file-input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      width: 100%;
+      padding: 48px 24px;
+      border: 3px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-input-label::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .file-input-label:hover::before {
+      left: 100%;
+    }
+
+    .file-input-label:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.02);
+      box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+      color: white;
+    }
+
+    .file-input-label:hover .upload-icon {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .upload-text {
+      font-size: 1.1rem;
+      color: white;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .upload-subtext {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 400;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .file-name {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      font-size: 0.9rem;
+      display: none;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .submit-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      padding: 16px 48px;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      min-width: 160px;
+      backdrop-filter: blur(10px);
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      display: none;
+      margin: 24px 0;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .loading p {
+      color: white;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .result {
+      margin-top: 32px;
+      padding: 24px;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+      display: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .result.show {
+      opacity: 1;
+      transform: translateY(0);
+      display: block;
+    }
+
+    .result.ai-detected {
+      background: rgba(252, 129, 129, 0.2);
+      color: #ffffff;
+      border: 2px solid rgba(252, 129, 129, 0.4);
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .result.human-detected {
+      background: rgba(104, 211, 145, 0.2);
+      color: #ffffff;
+      border: 2px solid rgba(104, 211, 145, 0.4);
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .confidence-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s ease-in-out;
+      width: 0%;
+    }
+
+    .ai-confidence {
+      background: linear-gradient(90deg, #fc8181, #e53e3e);
+    }
+
+    .human-confidence {
+      background: linear-gradient(90deg, #68d391, #38a169);
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 32px 24px;
+        margin: 16px;
+      }
+
+      h2 {
+        font-size: 2rem;
+      }
+
+      .file-input-label {
+        padding: 32px 16px;
+      }
+
+      .submit-btn {
+        padding: 14px 32px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  
+  <div id="main-content">
+    <div class="container">
+      <h2>AI Voice Detector</h2>
+      <p class="subtitle">Upload an audio file to detect if it's AI-generated or human speech</p>
+      
+      <div class="upload-section">
+        <div class="file-input-wrapper">
+          <input type="file" id="audioInput" class="file-input" accept="audio/*">
+          <label for="audioInput" class="file-input-label">
+            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <div class="upload-text">Choose Audio File</div>
+            <div class="upload-subtext">MP3, WAV, M4A or any audio format</div>
+          </label>
+          <div class="file-name" id="fileName"></div>
+        </div>
+        
+        <button class="submit-btn" onclick="uploadAudio()">
+          <span id="btnText">Analyze Audio</span>
+        </button>
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing your audio file...</p>
+      </div>
+
+      <div class="result" id="result">
+        <div id="resultText"></div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" id="confidenceFill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Interactive Droplets Background
+    class DropletsBackground {
+      constructor() {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        this.mouse = new THREE.Vector2(0, 0);
+        this.time = 0;
+        this.trailLength = 15;
+        this.pointerTrail = Array.from({ length: this.trailLength }, () => new THREE.Vector2(0, 0));
+        
+        this.init();
+        this.createShaders();
+        this.animate();
+        this.setupEventListeners();
+      }
+
+      init() {
+        const container = document.getElementById('canvas-container');
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(this.renderer.domElement);
+      }
+
+      createShaders() {
+        const vertexShader = `
+          attribute vec3 position;
+          varying vec2 vTexCoord;
+          void main() {
+            vTexCoord = position.xy * 0.5 + 0.5;
+            gl_Position = vec4(position, 1.0);
+          }
+        `;
+
+        const fragmentShader = `
+          precision mediump float;
+          
+          const float EPS = 1e-4;
+          const int ITR = 32;
+          const int TRAIL_LENGTH = 15;
+          
+          uniform vec2 uResolution;
+          uniform float uTime;
+          uniform vec2 uPointerTrail[TRAIL_LENGTH];
+          
+          varying vec2 vTexCoord;
+          
+          // Camera Params
+          vec3 origin = vec3(0.0, 0.0, 1.0);
+          vec3 lookAt = vec3(0.0, 0.0, 0.0);
+          vec3 cDir = normalize(lookAt - origin);
+          vec3 cUp = vec3(0.0, 1.0, 0.0);
+          vec3 cSide = cross(cDir, cUp);
+          
+          vec3 translate(vec3 p, vec3 t) {
+            return p - t;
+          }
+          
+          float sdSphere(vec3 p, float s) {
+            return length(p) - s;
+          }
+          
+          float smoothMin(float d1, float d2, float k) {
+            float h = exp(-k * d1) + exp(-k * d2);
+            return -log(h) / k;
+          }
+          
+          float rnd3D(vec3 p) {
+            return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453123);
+          }
+          
+          float noise3D(vec3 p) {
+            vec3 i = floor(p);
+            vec3 f = fract(p);
+            float a000 = rnd3D(i);
+            float a100 = rnd3D(i + vec3(1.0, 0.0, 0.0));
+            float a010 = rnd3D(i + vec3(0.0, 1.0, 0.0));
+            float a110 = rnd3D(i + vec3(1.0, 1.0, 0.0));
+            float a001 = rnd3D(i + vec3(0.0, 0.0, 1.0));
+            float a101 = rnd3D(i + vec3(1.0, 0.0, 1.0));
+            float a011 = rnd3D(i + vec3(0.0, 1.0, 1.0));
+            float a111 = rnd3D(i + vec3(1.0, 1.0, 1.0));
+            vec3 u = f * f * (3.0 - 2.0 * f);
+            
+            float k0 = a000;
+            float k1 = a100 - a000;
+            float k2 = a010 - a000;
+            float k3 = a001 - a000;
+            float k4 = a000 - a100 - a010 + a110;
+            float k5 = a000 - a010 - a001 + a011;
+            float k6 = a000 - a100 - a001 + a101;
+            float k7 = -a000 + a100 + a010 - a110 + a001 - a101 - a011 + a111;
+            return k0 + k1 * u.x + k2 * u.y + k3 * u.z + k4 * u.x * u.y + k5 * u.y * u.z + k6 * u.z * u.x + k7 * u.x * u.y * u.z;
+          }
+          
+          float map(vec3 p) {
+            float baseRadius = 0.08;
+            float radius = baseRadius * float(TRAIL_LENGTH) * 0.5;
+            float k = 7.0;
+            float d = 1e5;
+            
+            for (int i = 0; i < TRAIL_LENGTH; i++) {
+              float fi = float(i);
+              vec2 pointerTrail = uPointerTrail[i] * 2.0;
+              float sphere = sdSphere(
+                translate(p, vec3(pointerTrail, 0.0)),
+                radius - baseRadius * fi * 0.8
+              );
+              d = smoothMin(d, sphere, k);
+            }
+            
+            // Add some ambient spheres
+            float sphere1 = sdSphere(translate(p, vec3(sin(uTime * 0.5) * 0.8, cos(uTime * 0.3) * 0.6, 0.0)), 0.3);
+            float sphere2 = sdSphere(translate(p, vec3(cos(uTime * 0.4) * 0.9, sin(uTime * 0.6) * 0.7, 0.0)), 0.25);
+            float sphere3 = sdSphere(translate(p, vec3(sin(uTime * 0.7 + 3.14) * 0.7, cos(uTime * 0.8 + 1.57) * 0.8, 0.0)), 0.35);
+            
+            d = smoothMin(d, sphere1, k);
+            d = smoothMin(d, sphere2, k);
+            d = smoothMin(d, sphere3, k);
+            
+            return d;
+          }
+          
+          vec3 generateNormal(vec3 p) {
+            return normalize(vec3(
+              map(p + vec3(EPS, 0.0, 0.0)) - map(p + vec3(-EPS, 0.0, 0.0)),
+              map(p + vec3(0.0, EPS, 0.0)) - map(p + vec3(0.0, -EPS, 0.0)),
+              map(p + vec3(0.0, 0.0, EPS)) - map(p + vec3(0.0, 0.0, -EPS))
+            ));
+          }
+          
+          vec3 dropletColor(vec3 normal, vec3 rayDir) {
+            vec3 reflectDir = reflect(rayDir, normal);
+            float noisePosTime = noise3D(reflectDir * 2.0 + uTime);
+            float noiseNegTime = noise3D(reflectDir * 2.0 - uTime);
+            vec3 _color0 = vec3(0.6, 0.2, 0.8) * noisePosTime; // Deep purple
+            vec3 _color1 = vec3(0.5, 0.3, 0.9) * noiseNegTime; // Lighter purple
+            float intensity = 1.5;
+            vec3 color = (_color0 + _color1) * intensity;
+            return color;
+          }
+          
+          void main() {
+            vec2 p = (gl_FragCoord.xy * 2.0 - uResolution) / min(uResolution.x, uResolution.y);
+            
+            // Orthographic Camera
+            vec3 ray = origin + cSide * p.x + cUp * p.y;
+            vec3 rayDirection = cDir;
+            
+            float dist = 0.0;
+            for (int i = 0; i < ITR; ++i) {
+              dist = map(ray);
+              ray += rayDirection * dist;
+              if (dist < EPS) break;
+            }
+            
+            vec3 color = vec3(0.05, 0.05, 0.1); // Dark background
+            if (dist < EPS) {
+              vec3 normal = generateNormal(ray);
+              color = dropletColor(normal, rayDirection);
+            }
+            
+            vec3 finalColor = pow(color, vec3(2.0));
+            gl_FragColor = vec4(finalColor, 1.0);
+          }
+        `;
+
+        this.uniforms = {
+          uTime: { value: 0 },
+          uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+          uPointerTrail: { value: this.pointerTrail }
+        };
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.RawShaderMaterial({
+          vertexShader,
+          fragmentShader,
+          uniforms: this.uniforms
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        this.scene.add(mesh);
+      }
+
+      updatePointerTrail() {
+        for (let i = this.trailLength - 1; i > 0; i--) {
+          this.pointerTrail[i].copy(this.pointerTrail[i - 1]);
+        }
+        this.pointerTrail[0].copy(this.mouse);
+      }
+
+      setupEventListeners() {
+        window.addEventListener('mousemove', (event) => {
+          this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+          this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        window.addEventListener('resize', () => {
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+          this.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        this.time += 0.01;
+        this.uniforms.uTime.value = this.time;
+        this.updatePointerTrail();
+        
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    // Initialize the droplets background
+    try {
+      new DropletsBackground();
+    } catch (error) {
+      console.error('Failed to initialize background:', error);
+    }
+
+    // Audio detector functionality
+    document.getElementById('audioInput').addEventListener('change', function(e) {
+      const fileNameDiv = document.getElementById('fileName');
+      
+      if (e.target.files.length > 0) {
+        fileNameDiv.textContent = `Selected: ${e.target.files[0].name}`;
+        fileNameDiv.style.display = 'block';
+      } else {
+        fileNameDiv.style.display = 'none';
+      }
+    });
+
+    async function uploadAudio() {
+      const input = document.getElementById('audioInput');
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
+      const btnText = document.getElementById('btnText');
+      const submitBtn = document.querySelector('.submit-btn');
+      
+      if (!input.files.length) {
+        alert("Please upload an audio file.");
+        return;
+      }
+
+      // Validate file type
+      const validAudioTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp3'];
+      if (!validAudioTypes.includes(input.files[0].type)) {
+        alert("Please upload a valid audio file (MP3, WAV, M4A).");
+        return;
+      }
+
+      // Show loading state
+      loading.style.display = 'block';
+      result.classList.remove('show');
+      submitBtn.disabled = true;
+      btnText.textContent = 'Processing...';
+
+      try {
+        const formData = new FormData();
+        formData.append("file", input.files[0]);
+
+        // Note: This URL should be replaced with your actual server endpoint
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Validate response data
+        if (!data.prediction || !data.confidence) {
+          throw new Error('Invalid response format from server');
+        }
+
+        // Hide loading
+        loading.style.display = 'none';
+        
+        // Show result
+        const resultText = document.getElementById('resultText');
+        const confidenceFill = document.getElementById('confidenceFill');
+        
+        const isAI = data.prediction.toLowerCase().includes('ai') || 
+                     data.prediction.toLowerCase().includes('artificial');
+        
+        resultText.innerHTML = `
+          <strong>Detection Result:</strong> ${data.prediction}<br>
+          <strong>Confidence:</strong> ${data.confidence}%
+        `;
+        
+        // Set result styling based on prediction
+        result.className = 'result show ' + (isAI ? 'ai-detected' : 'human-detected');
+        
+        // Animate confidence bar
+        confidenceFill.className = 'confidence-fill ' + (isAI ? 'ai-confidence' : 'human-confidence');
+        setTimeout(() => {
+          confidenceFill.style.width = `${data.confidence}%`;
+        }, 100);
+        
+      } catch (error) {
+        loading.style.display = 'none';
+        alert('Error analyzing audio. Please ensure the server is running and try again.');
+        console.error('Error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Analyze Audio';
+      }
+    }
+  </script>
+</body>
+</html>
